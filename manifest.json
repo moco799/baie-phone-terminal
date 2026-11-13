@@ -1,0 +1,9 @@
+{
+  "display_name": "CENSY 白厄手机动态执行器",
+  "loading_order": 1,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "CENSY Lab",
+  "version": "1.1.0",
+  "auto_update": false
+}

@@ -1,0 +1,15 @@
+/* CENSY 白厄手机动态执行器：只控制外层 iframe 容器，不覆盖手机内部样式。 */
+.censy-baie-terminal-wrapper {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 0.5em 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.censy-baie-terminal-frame {
+    max-width: 100%;
+    color-scheme: normal;
+}
