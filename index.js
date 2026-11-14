@@ -1,11 +1,12 @@
 /*
- * CENSY 白厄手机动态执行器
+ * CENSY UI 动态执行器 (通用版)
  * SillyTavern UI Extension
  */
 
-const EXTENSION_NAME = "CENSY Bai’e Terminal";
-const ROOT_PATTERN = /<div\b[^>]*\bid\s*=\s*["']baie-terminal-template["']/i;
-const FRAME_CLASS = 'censy-baie-terminal-frame|app-ui';
+const EXTENSION_NAME = "CENSY Terminal";
+// 🌟 同时支持白厄手机和通用 app-ui
+const ROOT_PATTERN = /<div\b[^>]*\bid\s*=\s*["'](baie-terminal-template|app-ui)["']/i;
+const FRAME_CLASS = 'censy-baie-terminal-frame';
 const WRAPPER_CLASS = 'censy-baie-terminal-wrapper';
 
 let chatObserver = null;
@@ -28,49 +29,6 @@ function getHtmlCodeBlocks(root) {
     return Array.from(root.querySelectorAll('pre > code, pre code'));
 }
 
-function extractDocumentParts(html) {
-    const looksLikeFullDocument = /^\s*<!doctype|<html[\s>]|<head[\s>]|<body[\s>]/i.test(html);
-    let headContent = '';
-    let bodyContent = html;
-
-    if (looksLikeFullDocument) {
-        try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            headContent = doc.head ? doc.head.innerHTML : '';
-            bodyContent = doc.body ? doc.body.innerHTML : html;
-        } catch (error) {}
-    }
-
-    // 【新增正则/清理逻辑】：干掉 AI 自己脑补的多余图标
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(bodyContent, 'text/html');
-        const appItems = doc.querySelectorAll('.app-item');
-        let changed = false;
-
-        appItems.forEach(item => {
-            const label = item.querySelector('.app-label');
-            if (label) {
-                const text = label.innerText.trim();
-                // 只要匹配到这三个词，直接连根拔起
-                if (text === '公告' || text === '日程' || text === '收藏') {
-                    item.remove();
-                    changed = true;
-                }
-            }
-        });
-
-        if (changed) {
-            bodyContent = doc.body.innerHTML;
-        }
-    } catch (error) {
-        log('清理多余图标失败', error);
-    }
-
-    return { head: headContent, body: bodyContent };
-}
-
 function buildRuntimeDocument(originalHtml) {
     const csp = [
         "default-src 'none'",
@@ -84,8 +42,6 @@ function buildRuntimeDocument(originalHtml) {
         "base-uri 'none'",
         "object-src 'none'"
     ].join('; ');
-
-    const { head: headContent, body: bodyContent } = extractDocumentParts(originalHtml);
 
     const preludeScript = `<script>
 (() => {
@@ -140,21 +96,15 @@ html, body {
     overflow-x: hidden !important;
     overflow-y: auto !important;
 }
-#baie-terminal-template {
-    background: transparent !important;
-    padding-top: 30px !important; 
-    padding-bottom: 40px !important; 
-}
 </style>
-${headContent}
 </head>
 <body>
-${bodyContent}
+${originalHtml}
 </body>
 </html>`;
 }
 
-function mountPhone(pre, source) {
+function mountFrame(pre, source) {
     if (!pre || !pre.parentNode) return;
     if (pre.dataset.censyBaieMounted === '1') return;
 
@@ -164,11 +114,12 @@ function mountPhone(pre, source) {
 
     const frame = document.createElement('iframe');
     frame.className = FRAME_CLASS;
-    frame.title = '白厄的手机';
+    frame.title = 'Dynamic UI';
     frame.setAttribute('sandbox', 'allow-scripts allow-modals');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.setAttribute('loading', 'eager');
     frame.style.width = '100%';
+    // 默认高度设为 680px，UI 内部如果写了 height: 640px 就会完美适配
     frame.style.height = '680px'; 
     frame.style.display = 'block';
     frame.style.border = '0';
@@ -196,7 +147,7 @@ function scanMessage(message) {
         const source = code.textContent || '';
         if (!ROOT_PATTERN.test(source)) continue;
 
-        mountPhone(pre, source);
+        mountFrame(pre, source);
     }
 }
 
@@ -220,7 +171,7 @@ function onParentMessage(event) {
     if (!data || typeof data !== 'object') return;
 
     if (data.__censyBaieError === true) {
-        console.group(`[${EXTENSION_NAME}] 手机内部报错`);
+        console.group(`[${EXTENSION_NAME}] UI 内部报错`);
         console.error(data.message);
         if (data.error) console.error(data.error);
         console.groupEnd();
