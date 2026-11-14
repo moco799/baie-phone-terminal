@@ -5,7 +5,7 @@
 
 const EXTENSION_NAME = "CENSY Bai’e Terminal";
 const ROOT_PATTERN = /<div\b[^>]*\bid\s*=\s*["']baie-terminal-template["']/i;
-const FRAME_CLASS = 'censy-baie-terminal-frame';
+const FRAME_CLASS = 'censy-baie-terminal-frame|app-ui';
 const WRAPPER_CLASS = 'censy-baie-terminal-wrapper';
 
 let chatObserver = null;
