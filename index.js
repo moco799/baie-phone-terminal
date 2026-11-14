@@ -1,10 +1,10 @@
 /*
- * CENSY UI 动态执行器 (通用版)
+ * CENSY UI 动态执行器 (万能终极版)
  * SillyTavern UI Extension
  */
 
 const EXTENSION_NAME = "CENSY Terminal";
-// 🌟 同时支持白厄手机和通用 app-ui
+// 支持白厄手机和 app-ui，忽略大小写和多余空格
 const ROOT_PATTERN = /<div\b[^>]*\bid\s*=\s*["'](baie-terminal-template|app-ui)["']/i;
 const FRAME_CLASS = 'censy-baie-terminal-frame';
 const WRAPPER_CLASS = 'censy-baie-terminal-wrapper';
@@ -25,8 +25,9 @@ function getMessageTextRoot(message) {
     return message.querySelector('.mes_text, .mes_text_inner') || message;
 }
 
+// 极其暴力的代码块抓取：不管怎么包裹，全抓出来
 function getHtmlCodeBlocks(root) {
-    return Array.from(root.querySelectorAll('pre > code, pre code'));
+    return Array.from(root.querySelectorAll('pre, code'));
 }
 
 function buildRuntimeDocument(originalHtml) {
@@ -66,16 +67,6 @@ function buildRuntimeDocument(originalHtml) {
         try { Object.defineProperty(window, 'localStorage', { value: makeMemoryStorage(), configurable: true }); } catch (e) {}
         try { Object.defineProperty(window, 'sessionStorage', { value: makeMemoryStorage(), configurable: true }); } catch (e) {}
     }
-    try {
-        const originalBack = window.history.back.bind(window.history);
-        window.history.back = function () {
-            if (window.history.length <= 1) {
-                parent.postMessage({ __censyBaieAction: 'back' }, '*');
-                return;
-            }
-            originalBack();
-        };
-    } catch (error) {}
 })();
 <\/script>`;
 
@@ -114,12 +105,10 @@ function mountFrame(pre, source) {
 
     const frame = document.createElement('iframe');
     frame.className = FRAME_CLASS;
-    frame.title = 'Dynamic UI';
     frame.setAttribute('sandbox', 'allow-scripts allow-modals');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.setAttribute('loading', 'eager');
     frame.style.width = '100%';
-    // 默认高度设为 680px，UI 内部如果写了 height: 640px 就会完美适配
     frame.style.height = '680px'; 
     frame.style.display = 'block';
     frame.style.border = '0';
@@ -140,14 +129,19 @@ function scanMessage(message) {
     const codeBlocks = getHtmlCodeBlocks(textRoot);
 
     for (const code of codeBlocks) {
-        const pre = code.closest('pre');
-        if (!pre || pre.dataset.censyBaieMounted === '1') continue;
-        if (pre.closest(`.${WRAPPER_CLASS}`)) continue;
+        // 兼容处理：如果抓到的只是里面的 code，往上看一层是不是 pre
+        const targetNode = code.closest('pre') || code;
+        
+        if (targetNode.dataset.censyBaieMounted === '1') continue;
+        if (targetNode.closest(`.${WRAPPER_CLASS}`)) continue;
 
         const source = code.textContent || '';
-        if (!ROOT_PATTERN.test(source)) continue;
-
-        mountFrame(pre, source);
+        
+        // 如果匹配到了目标 ID，开始渲染
+        if (ROOT_PATTERN.test(source)) {
+            console.log(`[${EXTENSION_NAME}] 成功捕获到目标代码块，准备挂载沙盒...`);
+            mountFrame(targetNode, source);
+        }
     }
 }
 
@@ -175,24 +169,12 @@ function onParentMessage(event) {
         console.error(data.message);
         if (data.error) console.error(data.error);
         console.groupEnd();
-        return;
-    }
-
-    if (data.__censyBaieAction === 'back') {
-        const frames = document.querySelectorAll(`iframe.${FRAME_CLASS}`);
-        for (const frame of frames) {
-            if (frame.contentWindow !== event.source) continue;
-            const message = frame.closest('.mes');
-            if (message) message.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
-        }
     }
 }
 
 function observeChat() {
     const chatRoot = getChatRoot();
     if (!chatRoot) {
-        log('尚未找到 #chat，稍后重试。');
         setTimeout(observeChat, 500);
         return;
     }
