@@ -5,6 +5,10 @@ SillyTavern 本体 UI 扩展。它会识别 AI 消息中包含：
 ```html
 <div id="baie-terminal-template">
 ```
+和
+```html
+<div id="app-ui">
+```
 
 的 `html` 代码块，并将代码块内容装载到隔离的 iframe 中执行。
 
