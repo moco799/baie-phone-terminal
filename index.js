@@ -1,5 +1,5 @@
 /*
- * CENSY UI 动态执行器 (万能终极版 - 解锁同源权限)
+ * CENSY UI 动态执行器 (万能终极版)
  * SillyTavern UI Extension
  */
 
@@ -38,8 +38,7 @@ function buildRuntimeDocument(originalHtml) {
         "script-src 'unsafe-inline' 'unsafe-eval' https: blob:",
         "font-src https: data:",
         "media-src https: data: blob:",
-        // 将 connect-src 放宽，防止部分模块加载报错
-        "connect-src 'self' https:", 
+        "connect-src 'none'",
         "form-action 'none'",
         "base-uri 'none'",
         "object-src 'none'"
@@ -106,9 +105,7 @@ function mountFrame(pre, source) {
 
     const frame = document.createElement('iframe');
     frame.className = FRAME_CLASS;
-    // 🌟【核心修改点】：加上 allow-same-origin，打通与父页面的隔阂
-    frame.setAttribute('sandbox', 'allow-scripts allow-modals allow-same-origin');
-    
+    frame.setAttribute('sandbox', 'allow-scripts allow-modals');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.setAttribute('loading', 'eager');
     frame.style.width = '100%';
